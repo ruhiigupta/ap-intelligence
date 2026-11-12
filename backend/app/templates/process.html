@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AP Intelligence — Live Pipeline Run</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              800: '#1e40af',
+              900: '#1e3a8a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen antialiased flex flex-col">
+
+  <!-- ── Top Navigation Bar ──────────────────────────────────────────────────── -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <a href="/" class="h-9 w-9 bg-brand-600 rounded-lg flex items-center justify-center text-white shadow-sm shadow-brand-500/30">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+        </a>
+        <div>
+          <span class="font-bold text-lg tracking-tight text-slate-900">Zamp <span class="text-brand-600">AP Intelligence</span></span>
+          <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">v1.0 MVP</span>
+        </div>
+      </div>
+
+      <nav class="flex items-center space-x-6 text-sm font-medium">
+        <a href="/" class="text-slate-600 hover:text-slate-900 py-5 px-1 transition-colors">Dashboard</a>
+        <a href="/process" class="text-brand-600 border-b-2 border-brand-600 py-5 px-1 font-semibold">Live Pipeline Run</a>
+        <a href="/docs" target="_blank" class="text-slate-500 hover:text-slate-700 py-5 px-1 flex items-center space-x-1">
+          <span>API Docs</span>
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+          </svg>
+        </a>
+      </nav>
+
+      <div>
+        <a href="/" class="inline-flex items-center space-x-1 text-sm font-medium text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+          </svg>
+          <span>Back to Dashboard</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Main Content Area ───────────────────────────────────────────────────── -->
+  <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
+
+    <!-- Header Section -->
+    <div class="mb-8">
+      <div class="flex items-center space-x-2 text-xs font-medium text-slate-400 uppercase tracking-wider mb-1">
+        <a href="/" class="hover:text-slate-600">Dashboard</a>
+        <span>/</span>
+        <span class="text-brand-600 font-semibold">Live Process</span>
+      </div>
+      <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Live Invoice Processing Pipeline</h1>
+      <p class="text-sm text-slate-500 mt-1">Upload an invoice document to watch autonomous multi-stage extraction, routing, reading, and PO validation execute in real time.</p>
+    </div>
+
+    <!-- ── 1. Upload Form Card ───────────────────────────────────────────────── -->
+    <div id="uploadCard" class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-8 transition-all">
+      <h2 class="text-base font-semibold text-slate-900 mb-2">1. Select Invoice Document</h2>
+      <p class="text-xs text-slate-500 mb-4">Supported formats: PDF (digital or scanned), PNG, JPEG, WEBP (up to 50 MB).</p>
+
+      <!-- Drag & Drop Zone -->
+      <div 
+        id="dropZone"
+        ondragover="handleDragOver(event)"
+        ondragleave="handleDragLeave(event)"
+        ondrop="handleDrop(event)"
+        onclick="document.getElementById('fileInput').click()"
+        class="border-2 border-dashed border-slate-300 hover:border-brand-500 rounded-xl p-8 text-center cursor-pointer bg-slate-50/50 hover:bg-brand-50/20 transition-all flex flex-col items-center justify-center space-y-3"
+      >
+        <div class="w-12 h-12 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+          </svg>
+        </div>
+        <div>
+          <span class="text-sm font-semibold text-slate-700">Click to upload</span> or drag and drop
+          <p class="text-xs text-slate-400 mt-0.5">PDF, PNG, JPG, WEBP</p>
+        </div>
+        <input type="file" id="fileInput" class="hidden" accept=".pdf,.png,.jpg,.jpeg,.webp" onchange="handleFileSelect(event)">
+      </div>
+
+      <!-- Selected File Display -->
+      <div id="selectedFileInfo" class="hidden mt-4 p-3 bg-slate-50 rounded-lg border border-slate-200 flex items-center justify-between">
+        <div class="flex items-center space-x-3 truncate">
+          <div class="w-8 h-8 rounded bg-brand-100 text-brand-700 flex items-center justify-center flex-shrink-0 text-xs font-bold font-mono" id="fileExtBadge">
+            PDF
+          </div>
+          <div class="truncate">
+            <p class="text-sm font-medium text-slate-900 truncate" id="selectedFileName">filename.pdf</p>
+            <p class="text-xs text-slate-400" id="selectedFileSize">0 KB</p>
+          </div>
+        </div>
+        <button onclick="clearSelectedFile(event)" class="text-slate-400 hover:text-slate-600 p-1 rounded">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Action Button -->
+      <div class="mt-6 flex justify-end">
+        <button 
+          id="startPipelineBtn"
+          disabled
+          onclick="startPipeline()" 
+          class="inline-flex items-center space-x-2 bg-brand-600 hover:bg-brand-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-sm font-semibold px-6 py-2.5 rounded-lg shadow-sm transition-all"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <span>Run Pipeline</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ── 2. Live Pipeline Execution Card ───────────────────────────────────── -->
+    <div id="pipelineProgressCard" class="hidden bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-8 transition-all">
+      <div class="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+        <div>
+          <h2 class="text-base font-semibold text-slate-900">2. Real-Time Pipeline Execution</h2>
+          <p class="text-xs text-slate-500" id="liveDocId">Initializing run...</p>
+        </div>
+        <span id="overallBadge" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-brand-50 text-brand-700 border border-brand-200 animate-pulse">
+          Processing...
+        </span>
+      </div>
+
+      <!-- Stage Stepper List -->
+      <div class="space-y-4">
+        
+        <!-- Stage 1 -->
+        <div id="stage1" class="p-4 rounded-xl border border-slate-200 bg-white transition-all flex items-start space-x-4">
+          <div id="stage1Icon" class="mt-0.5 w-7 h-7 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center flex-shrink-0">
+            <span class="text-xs font-bold">1</span>
+          </div>
+          <div class="flex-1">
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-semibold text-slate-900">Stage 1: File Ingestion & Storage</h3>
+              <span id="stage1Time" class="text-xs text-slate-400 font-mono">--</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5" id="stage1Desc">Validating format via magic bytes, computing SHA-256 hash, and deduplicating storage.</p>
+            <div id="stage1Output" class="hidden text-xs font-mono text-slate-600 mt-2 bg-slate-50 p-2 rounded border border-slate-100"></div>
+          </div>
+        </div>
+
+        <!-- Stage 2 -->
+        <div id="stage2" class="p-4 rounded-xl border border-slate-200 bg-white transition-all flex items-start space-x-4 opacity-50">
+          <div id="stage2Icon" class="mt-0.5 w-7 h-7 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center flex-shrink-0">
+            <span class="text-xs font-bold">2</span>
+          </div>
+          <div class="flex-1">
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-semibold text-slate-900">Stage 2: Page Detection & Routing</h3>
+              <span id="stage2Time" class="text-xs text-slate-400 font-mono">--</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5" id="stage2Desc">Detecting digital vector vs scanned raster pages, bounding boxes, and extraction routes.</p>
+            <div id="stage2Output" class="hidden text-xs font-mono text-slate-600 mt-2 bg-slate-50 p-2 rounded border border-slate-100"></div>
+          </div>
+        </div>
+
+        <!-- Stage 3 -->
+        <div id="stage3" class="p-4 rounded-xl border border-slate-200 bg-white transition-all flex items-start space-x-4 opacity-50">
+          <div id="stage3Icon" class="mt-0.5 w-7 h-7 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center flex-shrink-0">
+            <span class="text-xs font-bold">3</span>
+          </div>
+          <div class="flex-1">
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-semibold text-slate-900">Stage 3: Document Reading (Cloud Vision / IR)</h3>
+              <span id="stage3Time" class="text-xs text-slate-400 font-mono">--</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5" id="stage3Desc">Extracting verbatim tokens, tabular cell structures, and key-value pairs into Reading IR.</p>
+            <div id="stage3Output" class="hidden text-xs font-mono text-slate-600 mt-2 bg-slate-50 p-2 rounded border border-slate-100"></div>
+          </div>
+        </div>
+
+        <!-- Stage 4 -->
+        <div id="stage4" class="p-4 rounded-xl border border-slate-200 bg-white transition-all flex items-start space-x-4 opacity-50">
+          <div id="stage4Icon" class="mt-0.5 w-7 h-7 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center flex-shrink-0">
+            <span class="text-xs font-bold">4</span>
+          </div>
+          <div class="flex-1">
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-semibold text-slate-900">Stage 4: Invoice Understanding & Validation</h3>
+              <span id="stage4Time" class="text-xs text-slate-400 font-mono">--</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5" id="stage4Desc">Mapping strict financial fields, executing completeness check, and PO tolerance matching.</p>
+            <div id="stage4Output" class="hidden text-xs font-mono text-slate-600 mt-2 bg-slate-50 p-2 rounded border border-slate-100"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── 3. Final Summary & Business Decision Card ─────────────────────────── -->
+    <div id="summaryCard" class="hidden bg-white rounded-2xl border border-slate-200 shadow-md p-6 mb-8 transition-all">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-6">
+        <div>
+          <h2 class="text-lg font-bold text-slate-900">3. Final Invoice Processing Decision</h2>
+          <p class="text-xs text-slate-500">Autonomous business decision output and auditable reasoning trail.</p>
+        </div>
+        <div id="finalStatusPill">
+          <!-- Filled dynamically -->
+        </div>
+      </div>
+
+      <!-- Decision Banner -->
+      <div id="finalDecisionBanner" class="p-4 rounded-xl border mb-6 flex items-start space-x-3">
+        <div id="finalDecisionIcon" class="mt-0.5 flex-shrink-0"></div>
+        <div>
+          <div id="finalDecisionTitle" class="text-sm font-bold">Decision</div>
+          <div id="finalDecisionReasoning" class="text-xs mt-1">Reasoning text...</div>
+        </div>
+      </div>
+
+      <!-- Extracted Fields Grid -->
+      <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">Extracted Financial Fields</h3>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6">
+        <div>
+          <span class="text-xs text-slate-400 uppercase font-medium">Invoice Number</span>
+          <p class="font-bold text-slate-900 text-sm mt-0.5" id="finalInvNo">--</p>
+        </div>
+        <div>
+          <span class="text-xs text-slate-400 uppercase font-medium">Invoice Date</span>
+          <p class="font-semibold text-slate-900 text-sm mt-0.5" id="finalInvDate">--</p>
+        </div>
+        <div>
+          <span class="text-xs text-slate-400 uppercase font-medium">Vendor Name</span>
+          <p class="font-semibold text-slate-900 text-sm mt-0.5" id="finalVendor">--</p>
+        </div>
+        <div>
+          <span class="text-xs text-slate-400 uppercase font-medium">Total Amount</span>
+          <p class="font-bold text-slate-900 text-base mt-0.5" id="finalTotal">--</p>
+        </div>
+      </div>
+
+      <!-- Line Items Section -->
+      <div class="mb-6">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-500">Extracted Line Items</h3>
+          <span class="text-xs text-slate-400" id="finalItemsCount">0 items</span>
+        </div>
+        <div class="border border-slate-200 rounded-xl overflow-hidden">
+          <table class="min-w-full text-xs divide-y divide-slate-200 text-left">
+            <thead class="bg-slate-50 text-slate-500">
+              <tr>
+                <th class="px-4 py-2.5">#</th>
+                <th class="px-4 py-2.5">Description</th>
+                <th class="px-4 py-2.5 text-right">Quantity</th>
+                <th class="px-4 py-2.5 text-right">Unit Price</th>
+                <th class="px-4 py-2.5 text-right">Total</th>
+              </tr>
+            </thead>
+            <tbody id="finalLineItemsBody" class="divide-y divide-slate-100">
+              <tr><td colspan="5" class="px-4 py-4 text-center text-slate-400">No line items extracted.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Next Actions -->
+      <div class="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <button onclick="resetView()" class="w-full sm:w-auto px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 transition-colors">
+          Process Another Invoice
+        </button>
+        <a href="/" class="w-full sm:w-auto inline-flex items-center justify-center space-x-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-5 py-2 rounded-lg shadow-sm transition-colors">
+          <span>View in Dashboard</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+          </svg>
+        </a>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ── Footer ──────────────────────────────────────────────────────────────── -->
+  <footer class="bg-white border-t border-slate-200 mt-auto py-4 text-xs text-slate-400 text-center">
+    <div class="max-w-7xl mx-auto px-4">
+      Zamp Accounts Payable Intelligence &bull; Real-Time Pipeline Orchestrator
+    </div>
+  </footer>
+
+  <!-- ── Pipeline JS Logic ──────────────────────────────────────────────────── -->
+  <script>
+    let selectedFile = null;
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      document.getElementById('dropZone').classList.add('border-brand-500', 'bg-brand-50/30');
+    }
+
+    function handleDragLeave(e) {
+      e.preventDefault();
+      document.getElementById('dropZone').classList.remove('border-brand-500', 'bg-brand-50/30');
+    }
+
+    function handleDrop(e) {
+      e.preventDefault();
+      document.getElementById('dropZone').classList.remove('border-brand-500', 'bg-brand-50/30');
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        setFile(e.dataTransfer.files[0]);
+      }
+    }
+
+    function handleFileSelect(e) {
+      if (e.target.files && e.target.files.length > 0) {
+        setFile(e.target.files[0]);
+      }
+    }
+
+    function setFile(file) {
+      selectedFile = file;
+      document.getElementById('selectedFileName').innerText = file.name;
+      document.getElementById('selectedFileSize').innerText = (file.size / 1024).toFixed(1) + ' KB';
+      
+      const ext = file.name.split('.').pop().toUpperCase();
+      document.getElementById('fileExtBadge').innerText = ext || 'FILE';
+      
+      document.getElementById('selectedFileInfo').classList.remove('hidden');
+      document.getElementById('startPipelineBtn').disabled = false;
+    }
+
+    function clearSelectedFile(e) {
+      if (e) e.stopPropagation();
+      selectedFile = null;
+      document.getElementById('fileInput').value = '';
+      document.getElementById('selectedFileInfo').classList.add('hidden');
+      document.getElementById('startPipelineBtn').disabled = true;
+    }
+
+    // Helper to format stage state
+    function setStageRunning(stageNum, desc) {
+      const stage = document.getElementById(`stage${stageNum}`);
+      const icon = document.getElementById(`stage${stageNum}Icon`);
+      const descEl = document.getElementById(`stage${stageNum}Desc`);
+
+      stage.classList.remove('opacity-50');
+      stage.classList.add('border-brand-300', 'bg-brand-50/10');
+      if (desc) descEl.innerText = desc;
+
+      icon.className = 'mt-0.5 w-7 h-7 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center flex-shrink-0 animate-spin';
+      icon.innerHTML = `
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+        </svg>
+      `;
+    }
+
+    function setStageSuccess(stageNum, message, ms, detailText) {
+      const stage = document.getElementById(`stage${stageNum}`);
+      const icon = document.getElementById(`stage${stageNum}Icon`);
+      const descEl = document.getElementById(`stage${stageNum}Desc`);
+      const timeEl = document.getElementById(`stage${stageNum}Time`);
+      const outEl = document.getElementById(`stage${stageNum}Output`);
+
+      stage.classList.remove('border-brand-300', 'bg-brand-50/10');
+      stage.classList.add('border-emerald-200', 'bg-emerald-50/10');
+
+      if (message) descEl.innerText = message;
+      if (ms !== undefined) timeEl.innerText = `${ms} ms`;
+
+      icon.className = 'mt-0.5 w-7 h-7 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center flex-shrink-0';
+      icon.innerHTML = `
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
+        </svg>
+      `;
+
+      if (detailText) {
+        outEl.innerText = detailText;
+        outEl.classList.remove('hidden');
+      }
+    }
+
+    function setStageFailed(stageNum, errorMsg) {
+      const stage = document.getElementById(`stage${stageNum}`);
+      const icon = document.getElementById(`stage${stageNum}Icon`);
+      const descEl = document.getElementById(`stage${stageNum}Desc`);
+      const outEl = document.getElementById(`stage${stageNum}Output`);
+
+      stage.classList.remove('border-brand-300', 'bg-brand-50/10');
+      stage.classList.add('border-rose-300', 'bg-rose-50/20');
+      descEl.innerText = 'Stage failed';
+
+      icon.className = 'mt-0.5 w-7 h-7 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center flex-shrink-0';
+      icon.innerHTML = `
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      `;
+
+      outEl.innerText = errorMsg;
+      outEl.classList.remove('hidden');
+      outEl.classList.add('text-rose-700', 'bg-rose-50');
+
+      document.getElementById('overallBadge').className = 'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 border border-rose-200';
+      document.getElementById('overallBadge').innerText = 'Pipeline Failed';
+    }
+
+    // ── Chain the 4 stages sequentially ─────────────────────────────────────
+    async function startPipeline() {
+      if (!selectedFile) return;
+
+      // Lock UI
+      document.getElementById('startPipelineBtn').disabled = true;
+      document.getElementById('uploadCard').classList.add('opacity-60', 'pointer-events-none');
+      document.getElementById('pipelineProgressCard').classList.remove('hidden');
+      document.getElementById('summaryCard').classList.add('hidden');
+
+      let documentId = null;
+
+      try {
+        // ── Stage 1: Upload ─────────────────────────────────────────────────
+        setStageRunning(1, "Uploading & Validating File (magic bytes, SHA-256 deduplication)...");
+        const t1_start = performance.now();
+
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+
+        const res1 = await fetch('/api/invoices/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const t1_elapsed = Math.round(performance.now() - t1_start);
+
+        if (!res1.ok) {
+          const errData = await res1.json().catch(() => ({}));
+          throw new Error(errData.detail || `Upload failed with HTTP ${res1.status}`);
+        }
+
+        const data1 = await res1.json();
+        documentId = data1.document.document_id;
+        document.getElementById('liveDocId').innerText = `Document ID: ${documentId}`;
+
+        setStageSuccess(
+          1,
+          `File verified and stored (${data1.document.file_size.toLocaleString()} bytes, sha256: ${data1.document.sha256_hash.substring(0, 12)}...)`,
+          t1_elapsed,
+          `Status: ${data1.document.status} | MIME: ${data1.document.mime_type} | Pages: ${data1.document.page_count ?? 1}`
+        );
+
+        // ── Stage 2: Analyze ────────────────────────────────────────────────
+        setStageRunning(2, "Detecting page types & determining extraction routes...");
+        const t2_start = performance.now();
+
+        const res2 = await fetch(`/api/invoices/${documentId}/analyze`, {
+          method: 'POST',
+        });
+        const t2_elapsed = Math.round(performance.now() - t2_start);
+
+        if (!res2.ok) {
+          const errData = await res2.json().catch(() => ({}));
+          throw new Error(errData.detail || `Page analysis failed with HTTP ${res2.status}`);
+        }
+
+        const data2 = await res2.json();
+        const pTypes = data2.pages.map(p => `p${p.page_number}:${p.page_type}`).join(', ');
+        setStageSuccess(
+          2,
+          `Analyzed ${data2.total_pages} page(s) (${data2.digital_pages} digital, ${data2.scanned_pages} scanned, ${data2.image_pages} image)`,
+          t2_elapsed,
+          `Routes determined: [${pTypes}]`
+        );
+
+        // ── Stage 3: Read (Cloud Vision IR) ─────────────────────────────────
+        setStageRunning(3, "Extracting observational raw data (tokens, tables, key-values)...");
+        const t3_start = performance.now();
+
+        const res3 = await fetch(`/api/invoices/${documentId}/read`, {
+          method: 'POST',
+        });
+        const t3_elapsed = Math.round(performance.now() - t3_start);
+
+        if (!res3.ok) {
+          const errData = await res3.json().catch(() => ({}));
+          throw new Error(errData.detail || `Reading IR failed with HTTP ${res3.status}`);
+        }
+
+        const data3 = await res3.json();
+        let totalTokens = 0, totalTables = 0, totalKVs = 0;
+        data3.pages.forEach(p => {
+          totalTokens += p.tokens_count || 0;
+          totalTables += p.tables_count || 0;
+          totalKVs += p.raw_key_values_count || 0;
+        });
+
+        const engineUsed = data3.pages[0]?.reading_engine || 'reader';
+        setStageSuccess(
+          3,
+          `Observational extraction complete via ${engineUsed} (${totalTokens} tokens, ${totalTables} table(s), ${totalKVs} key-values)`,
+          t3_elapsed,
+          `Pages read: ${data3.total_pages_read} | Engine: ${engineUsed}`
+        );
+
+        // ── Stage 4: Understand & Validate ──────────────────────────────────
+        setStageRunning(4, "Applying business rules, parsing fields, and matching PO tolerance...");
+        const t4_start = performance.now();
+
+        const res4 = await fetch(`/api/invoices/${documentId}/understand`, {
+          method: 'POST',
+        });
+        const t4_elapsed = Math.round(performance.now() - t4_start);
+
+        if (!res4.ok) {
+          const errData = await res4.json().catch(() => ({}));
+          throw new Error(errData.detail || `Understanding stage failed with HTTP ${res4.status}`);
+        }
+
+        const data4 = await res4.json();
+        setStageSuccess(
+          4,
+          `Business decision finalized: ${data4.validation_status}`,
+          t4_elapsed,
+          data4.validation_reasoning
+        );
+
+        // Update overall badge
+        document.getElementById('overallBadge').className = 'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200';
+        document.getElementById('overallBadge').innerText = 'Completed';
+
+        // Display Final Decision Card
+        renderFinalSummary(data4);
+
+      } catch (err) {
+        console.error("Pipeline failure:", err);
+        // Highlight active failing stage
+        if (!documentId) {
+          setStageFailed(1, err.message);
+        } else {
+          setStageFailed(4, err.message);
+        }
+      }
+    }
+
+    function renderFinalSummary(result) {
+      const summaryCard = document.getElementById('summaryCard');
+      summaryCard.classList.remove('hidden');
+
+      // Scroll to summary smoothly
+      summaryCard.scrollIntoView({ behavior: 'smooth' });
+
+      // Financial fields
+      document.getElementById('finalInvNo').innerText = result.invoice_number || 'N/A';
+      document.getElementById('finalInvDate').innerText = result.invoice_date || 'N/A';
+      document.getElementById('finalVendor').innerText = result.vendor_name || 'N/A';
+      document.getElementById('finalTotal').innerText = result.total_amount ? '$' + result.total_amount.toLocaleString('en-US', { minimumFractionDigits: 2 }) : 'N/A';
+
+      // Status Pill & Decision Banner
+      const pill = document.getElementById('finalStatusPill');
+      const banner = document.getElementById('finalDecisionBanner');
+      const icon = document.getElementById('finalDecisionIcon');
+      const title = document.getElementById('finalDecisionTitle');
+      const reasoning = document.getElementById('finalDecisionReasoning');
+
+      reasoning.innerText = result.validation_reasoning || 'No details provided.';
+
+      if (result.validation_status === 'APPROVED') {
+        pill.innerHTML = `<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">APPROVED</span>`;
+        banner.className = 'p-4 rounded-xl border flex items-start space-x-3 bg-emerald-50 border-emerald-200 text-emerald-900';
+        title.innerText = 'Invoice Approved for Payment';
+        icon.innerHTML = `<svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+      } else if (result.validation_status === 'REJECTED') {
+        pill.innerHTML = `<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-300">REJECTED</span>`;
+        banner.className = 'p-4 rounded-xl border flex items-start space-x-3 bg-rose-50 border-rose-200 text-rose-900';
+        title.innerText = 'Invoice Rejected — PO Limit Exceeded';
+        icon.innerHTML = `<svg class="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+      } else {
+        pill.innerHTML = `<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">MANUAL REVIEW</span>`;
+        banner.className = 'p-4 rounded-xl border flex items-start space-x-3 bg-amber-50 border-amber-200 text-amber-900';
+        title.innerText = 'Manual Review Required';
+        icon.innerHTML = `<svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>`;
+      }
+
+      // Line items table
+      const items = result.line_items || [];
+      document.getElementById('finalItemsCount').innerText = `${items.length} item(s)`;
+      const itemsBody = document.getElementById('finalLineItemsBody');
+
+      if (items.length > 0) {
+        itemsBody.innerHTML = items.map((it, idx) => `
+          <tr>
+            <td class="px-4 py-2.5 font-mono text-slate-400">${it.item_index || idx + 1}</td>
+            <td class="px-4 py-2.5 font-medium text-slate-800">${it.description}</td>
+            <td class="px-4 py-2.5 text-right font-mono">${it.quantity ?? '--'}</td>
+            <td class="px-4 py-2.5 text-right font-mono">${it.unit_price ? '$' + it.unit_price.toFixed(2) : '--'}</td>
+            <td class="px-4 py-2.5 text-right font-mono font-semibold">${it.total ? '$' + it.total.toFixed(2) : '--'}</td>
+          </tr>
+        `).join('');
+      } else {
+        itemsBody.innerHTML = `<tr><td colspan="5" class="px-4 py-4 text-center text-slate-400">No line items extracted from document tables.</td></tr>`;
+      }
+    }
+
+    function resetView() {
+      clearSelectedFile();
+      document.getElementById('uploadCard').classList.remove('opacity-60', 'pointer-events-none');
+      document.getElementById('pipelineProgressCard').classList.add('hidden');
+      document.getElementById('summaryCard').classList.add('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  </script>
+</body>
+</html>

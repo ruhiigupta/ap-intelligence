@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AP Intelligence — Invoice Dashboard</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              800: '#1e40af',
+              900: '#1e3a8a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen antialiased flex flex-col">
+
+  <!-- ── Top Navigation Bar ──────────────────────────────────────────────────── -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="h-9 w-9 bg-brand-600 rounded-lg flex items-center justify-center text-white shadow-sm shadow-brand-500/30">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+        </div>
+        <div>
+          <span class="font-bold text-lg tracking-tight text-slate-900">Zamp <span class="text-brand-600">AP Intelligence</span></span>
+          <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">v1.0 MVP</span>
+        </div>
+      </div>
+
+      <nav class="flex items-center space-x-6 text-sm font-medium">
+        <a href="/" class="text-brand-600 border-b-2 border-brand-600 py-5 px-1 font-semibold">Dashboard</a>
+        <a href="/process" class="text-slate-600 hover:text-slate-900 py-5 px-1 transition-colors">Live Pipeline Run</a>
+        <a href="/docs" target="_blank" class="text-slate-500 hover:text-slate-700 py-5 px-1 flex items-center space-x-1">
+          <span>API Docs</span>
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+          </svg>
+        </a>
+      </nav>
+
+      <div>
+        <a href="/process" class="inline-flex items-center space-x-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-lg shadow-sm shadow-brand-600/20 transition-all hover:shadow-md">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+          </svg>
+          <span>Process New Invoice</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Main Content Area ───────────────────────────────────────────────────── -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
+
+    <!-- Page Title & Header -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between pb-6 gap-4 border-b border-slate-200">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Invoice Processing History</h1>
+        <p class="text-sm text-slate-500 mt-1">Audit status, business validations, and extracted accounts payable entries.</p>
+      </div>
+      <div class="flex items-center space-x-3">
+        <button id="refreshBtn" onclick="loadInvoices()" class="inline-flex items-center space-x-1.5 px-3.5 py-2 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 shadow-sm transition-colors">
+          <svg id="refreshIcon" class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+          <span>Refresh</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Summary Stats Cards ───────────────────────────────────────────────── -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 my-6">
+      <!-- Total -->
+      <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Processed</span>
+          <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+            </svg>
+          </div>
+        </div>
+        <p id="statTotal" class="text-2xl font-bold text-slate-900 mt-2">0</p>
+        <p class="text-xs text-slate-400 mt-1">Uploaded AP invoices</p>
+      </div>
+
+      <!-- Approved -->
+      <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold uppercase tracking-wider text-emerald-600">Approved</span>
+          <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+          </div>
+        </div>
+        <p id="statApproved" class="text-2xl font-bold text-emerald-600 mt-2">0</p>
+        <p class="text-xs text-slate-400 mt-1">Matched PO limit</p>
+      </div>
+
+      <!-- Rejected -->
+      <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold uppercase tracking-wider text-rose-600">Rejected</span>
+          <div class="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </div>
+        </div>
+        <p id="statRejected" class="text-2xl font-bold text-rose-600 mt-2">0</p>
+        <p class="text-xs text-slate-400 mt-1">Exceeds PO tolerance</p>
+      </div>
+
+      <!-- Manual Review -->
+      <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold uppercase tracking-wider text-amber-600">Manual Review</span>
+          <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+            </svg>
+          </div>
+        </div>
+        <p id="statReview" class="text-2xl font-bold text-amber-600 mt-2">0</p>
+        <p class="text-xs text-slate-400 mt-1">Missing info / unknown vendor</p>
+      </div>
+    </div>
+
+    <!-- ── Filter & Search Toolbar ───────────────────────────────────────────── -->
+    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm mb-6 flex flex-col sm:flex-row gap-3 items-center justify-between">
+      <div class="relative w-full sm:w-80">
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+        </div>
+        <input 
+          type="text" 
+          id="searchInput" 
+          oninput="filterTable()" 
+          placeholder="Search by vendor, invoice #, filename..." 
+          class="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+        />
+      </div>
+
+      <div class="flex items-center space-x-2 w-full sm:w-auto">
+        <label for="statusFilter" class="text-xs font-medium text-slate-500 whitespace-nowrap">Filter Status:</label>
+        <select 
+          id="statusFilter" 
+          onchange="filterTable()" 
+          class="text-sm border border-slate-300 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+        >
+          <option value="ALL">All Statuses</option>
+          <option value="APPROVED">Approved</option>
+          <option value="REJECTED">Rejected</option>
+          <option value="MANUAL_REVIEW">Manual Review</option>
+          <option value="PENDING">Pending</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- ── Invoices Table Card ───────────────────────────────────────────────── -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-200 text-left text-sm">
+          <thead class="bg-slate-50 text-slate-500 uppercase text-xs font-semibold tracking-wider">
+            <tr>
+              <th scope="col" class="px-6 py-3.5">Invoice / File</th>
+              <th scope="col" class="px-6 py-3.5">Vendor</th>
+              <th scope="col" class="px-6 py-3.5">Invoice Date</th>
+              <th scope="col" class="px-6 py-3.5 text-right">Total Amount</th>
+              <th scope="col" class="px-6 py-3.5 text-center">Validation Status</th>
+              <th scope="col" class="px-6 py-3.5">Reasoning / Audit Notes</th>
+              <th scope="col" class="px-6 py-3.5 text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="invoiceTableBody" class="divide-y divide-slate-100 text-slate-700">
+            <!-- Dynamic rows inserted via JS -->
+            <tr>
+              <td colspan="7" class="px-6 py-12 text-center text-slate-400">
+                <div class="flex flex-col items-center justify-center space-y-2">
+                  <svg class="animate-spin h-6 w-6 text-brand-600" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                  </svg>
+                  <span>Loading invoice history...</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Empty State -->
+      <div id="emptyState" class="hidden px-6 py-16 text-center">
+        <div class="mx-auto w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-3">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+        </div>
+        <h3 class="text-base font-semibold text-slate-900">No invoices found</h3>
+        <p class="text-sm text-slate-500 mt-1 max-w-sm mx-auto">Upload an invoice document to run through the AI extraction and PO validation pipeline.</p>
+        <div class="mt-5">
+          <a href="/process" class="inline-flex items-center space-x-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2 rounded-lg shadow-sm">
+            <span>Process New Invoice</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ── Footer ──────────────────────────────────────────────────────────────── -->
+  <footer class="bg-white border-t border-slate-200 mt-auto py-4 text-xs text-slate-400 text-center">
+    <div class="max-w-7xl mx-auto px-4">
+      Zamp Accounts Payable Intelligence &bull; Stage 1–5 End-to-End Autonomous Pipeline
+    </div>
+  </footer>
+
+  <!-- ── Inspection Modal ────────────────────────────────────────────────────── -->
+  <div id="detailModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden transform transition-all">
+      <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+        <div>
+          <h3 class="text-base font-bold text-slate-900" id="modalTitle">Invoice Details</h3>
+          <p class="text-xs text-slate-500 font-mono" id="modalDocId">ID: --</p>
+        </div>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+        <!-- Status Banner -->
+        <div id="modalStatusBanner" class="p-4 rounded-xl border flex items-start space-x-3">
+          <div id="modalStatusIcon" class="mt-0.5"></div>
+          <div>
+            <div class="font-bold text-sm" id="modalStatusText">STATUS</div>
+            <div class="text-xs mt-1" id="modalReasoningText">Reasoning</div>
+          </div>
+        </div>
+
+        <!-- Details Grid -->
+        <div class="grid grid-cols-2 gap-4 text-sm bg-slate-50 p-4 rounded-xl border border-slate-100">
+          <div>
+            <span class="text-xs text-slate-400 uppercase font-medium">Invoice Number</span>
+            <p class="font-semibold text-slate-900" id="modalInvoiceNo">--</p>
+          </div>
+          <div>
+            <span class="text-xs text-slate-400 uppercase font-medium">Invoice Date</span>
+            <p class="font-semibold text-slate-900" id="modalInvoiceDate">--</p>
+          </div>
+          <div>
+            <span class="text-xs text-slate-400 uppercase font-medium">Vendor Name</span>
+            <p class="font-semibold text-slate-900" id="modalVendor">--</p>
+          </div>
+          <div>
+            <span class="text-xs text-slate-400 uppercase font-medium">Total Amount</span>
+            <p class="font-semibold text-slate-900 text-base" id="modalTotal">--</p>
+          </div>
+          <div>
+            <span class="text-xs text-slate-400 uppercase font-medium">Original Filename</span>
+            <p class="text-xs font-mono text-slate-600 truncate" id="modalFilename">--</p>
+          </div>
+          <div>
+            <span class="text-xs text-slate-400 uppercase font-medium">Upload Timestamp</span>
+            <p class="text-xs text-slate-600" id="modalUploadedAt">--</p>
+          </div>
+        </div>
+
+        <!-- Line items table -->
+        <div>
+          <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Line Items Breakdown</h4>
+          <div class="border border-slate-200 rounded-lg overflow-hidden">
+            <table class="min-w-full text-xs divide-y divide-slate-200 text-left">
+              <thead class="bg-slate-50 text-slate-500">
+                <tr>
+                  <th class="px-3 py-2">#</th>
+                  <th class="px-3 py-2">Description</th>
+                  <th class="px-3 py-2 text-right">Qty</th>
+                  <th class="px-3 py-2 text-right">Unit Price</th>
+                  <th class="px-3 py-2 text-right">Total</th>
+                </tr>
+              </thead>
+              <tbody id="modalLineItemsBody" class="divide-y divide-slate-100">
+                <tr><td colspan="5" class="px-3 py-4 text-center text-slate-400">No items available</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="px-6 py-3 border-t border-slate-200 bg-slate-50 flex justify-end">
+        <button onclick="closeModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 text-sm font-medium rounded-lg transition-colors">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Script Logic ────────────────────────────────────────────────────────── -->
+  <script>
+    let allInvoices = [];
+
+    async function loadInvoices() {
+      const refreshIcon = document.getElementById('refreshIcon');
+      refreshIcon.classList.add('animate-spin');
+
+      try {
+        const res = await fetch('/api/invoices');
+        if (!res.ok) throw new Error('Failed to fetch invoices: ' + res.statusText);
+        const data = await res.json();
+        allInvoices = data.invoices || [];
+        updateStats(allInvoices);
+        renderTable(allInvoices);
+      } catch (err) {
+        console.error(err);
+        document.getElementById('invoiceTableBody').innerHTML = `
+          <tr>
+            <td colspan="7" class="px-6 py-8 text-center text-rose-500">
+              Failed to load invoices. Ensure the backend server is running.
+            </td>
+          </tr>
+        `;
+      } finally {
+        setTimeout(() => refreshIcon.classList.remove('animate-spin'), 400);
+      }
+    }
+
+    function updateStats(invoices) {
+      document.getElementById('statTotal').innerText = invoices.length;
+      document.getElementById('statApproved').innerText = invoices.filter(i => i.validation_status === 'APPROVED').length;
+      document.getElementById('statRejected').innerText = invoices.filter(i => i.validation_status === 'REJECTED').length;
+      document.getElementById('statReview').innerText = invoices.filter(i => i.validation_status === 'MANUAL_REVIEW').length;
+    }
+
+    function getStatusBadge(status) {
+      if (status === 'APPROVED') {
+        return `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span> APPROVED
+        </span>`;
+      } else if (status === 'REJECTED') {
+        return `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 border border-rose-200">
+          <span class="w-1.5 h-1.5 rounded-full bg-rose-500 mr-1.5"></span> REJECTED
+        </span>`;
+      } else if (status === 'MANUAL_REVIEW') {
+        return `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
+          <span class="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5"></span> MANUAL REVIEW
+        </span>`;
+      }
+      return `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+        <span class="w-1.5 h-1.5 rounded-full bg-slate-400 mr-1.5"></span> PENDING
+      </span>`;
+    }
+
+    function formatAmount(amt) {
+      if (amt === null || amt === undefined) return '<span class="text-slate-400 italic">--</span>';
+      return amt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function renderTable(invoices) {
+      const tbody = document.getElementById('invoiceTableBody');
+      const emptyState = document.getElementById('emptyState');
+
+      if (!invoices || invoices.length === 0) {
+        tbody.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      tbody.innerHTML = invoices.map(inv => {
+        const invNo = inv.invoice_number || 'Unknown #';
+        const vendor = inv.vendor_name || '<span class="text-slate-400 italic">Not extracted</span>';
+        const dateStr = inv.invoice_date || (inv.upload_timestamp ? inv.upload_timestamp.split('T')[0] : '--');
+        const reasoning = inv.validation_reasoning || 'Awaiting stage processing...';
+
+        return `
+          <tr class="hover:bg-slate-50/80 transition-colors">
+            <td class="px-6 py-4">
+              <div class="font-medium text-slate-900">${invNo}</div>
+              <div class="text-xs text-slate-400 font-mono truncate max-w-xs" title="${inv.original_filename}">${inv.original_filename}</div>
+            </td>
+            <td class="px-6 py-4">
+              <span class="font-medium text-slate-800">${vendor}</span>
+            </td>
+            <td class="px-6 py-4 text-slate-600">
+              ${dateStr}
+            </td>
+            <td class="px-6 py-4 text-right font-mono font-medium text-slate-900">
+              ${formatAmount(inv.total_amount)}
+            </td>
+            <td class="px-6 py-4 text-center">
+              ${getStatusBadge(inv.validation_status)}
+            </td>
+            <td class="px-6 py-4 max-w-xs">
+              <p class="text-xs text-slate-500 truncate" title="${reasoning}">${reasoning}</p>
+            </td>
+            <td class="px-6 py-4 text-center">
+              <button 
+                onclick="inspectInvoice('${inv.document_id}')"
+                class="px-2.5 py-1 text-xs font-medium text-brand-700 bg-brand-50 hover:bg-brand-100 rounded-md border border-brand-200 transition-colors"
+              >
+                Inspect
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function filterTable() {
+      const query = document.getElementById('searchInput').value.toLowerCase().trim();
+      const status = document.getElementById('statusFilter').value;
+
+      const filtered = allInvoices.filter(inv => {
+        const matchQuery = !query || 
+          (inv.original_filename && inv.original_filename.toLowerCase().includes(query)) ||
+          (inv.invoice_number && inv.invoice_number.toLowerCase().includes(query)) ||
+          (inv.vendor_name && inv.vendor_name.toLowerCase().includes(query)) ||
+          (inv.document_id && inv.document_id.toLowerCase().includes(query));
+
+        const matchStatus = status === 'ALL' || inv.validation_status === status;
+        return matchQuery && matchStatus;
+      });
+
+      renderTable(filtered);
+    }
+
+    async function inspectInvoice(docId) {
+      const inv = allInvoices.find(i => i.document_id === docId);
+      if (!inv) return;
+
+      document.getElementById('modalTitle').innerText = inv.invoice_number || inv.original_filename;
+      document.getElementById('modalDocId').innerText = 'ID: ' + inv.document_id;
+      document.getElementById('modalInvoiceNo').innerText = inv.invoice_number || 'N/A';
+      document.getElementById('modalInvoiceDate').innerText = inv.invoice_date || 'N/A';
+      document.getElementById('modalVendor').innerText = inv.vendor_name || 'N/A';
+      document.getElementById('modalTotal').innerText = inv.total_amount ? '$' + formatAmount(inv.total_amount) : 'N/A';
+      document.getElementById('modalFilename').innerText = inv.original_filename;
+      document.getElementById('modalUploadedAt').innerText = inv.upload_timestamp;
+
+      // Status banner
+      const banner = document.getElementById('modalStatusBanner');
+      const statusText = document.getElementById('modalStatusText');
+      const reasoningText = document.getElementById('modalReasoningText');
+
+      if (inv.validation_status === 'APPROVED') {
+        banner.className = 'p-4 rounded-xl border flex items-start space-x-3 bg-emerald-50 border-emerald-200 text-emerald-900';
+        statusText.innerText = 'APPROVED';
+      } else if (inv.validation_status === 'REJECTED') {
+        banner.className = 'p-4 rounded-xl border flex items-start space-x-3 bg-rose-50 border-rose-200 text-rose-900';
+        statusText.innerText = 'REJECTED';
+      } else {
+        banner.className = 'p-4 rounded-xl border flex items-start space-x-3 bg-amber-50 border-amber-200 text-amber-900';
+        statusText.innerText = inv.validation_status || 'PENDING';
+      }
+      reasoningText.innerText = inv.validation_reasoning || 'No reasoning available.';
+
+      // Try fetching line items if available from understand endpoint
+      const itemsBody = document.getElementById('modalLineItemsBody');
+      itemsBody.innerHTML = `<tr><td colspan="5" class="px-3 py-4 text-center text-slate-400">Loading line items...</td></tr>`;
+
+      try {
+        const res = await fetch(`/api/invoices/${docId}/understand`);
+        if (res.ok) {
+          const detail = await res.json();
+          if (detail.line_items && detail.line_items.length > 0) {
+            itemsBody.innerHTML = detail.line_items.map((it, idx) => `
+              <tr>
+                <td class="px-3 py-2 font-mono text-slate-400">${it.item_index || idx + 1}</td>
+                <td class="px-3 py-2 font-medium text-slate-800">${it.description}</td>
+                <td class="px-3 py-2 text-right font-mono">${it.quantity ?? '--'}</td>
+                <td class="px-3 py-2 text-right font-mono">${it.unit_price ? '$' + it.unit_price.toFixed(2) : '--'}</td>
+                <td class="px-3 py-2 text-right font-mono font-semibold">${it.total ? '$' + it.total.toFixed(2) : '--'}</td>
+              </tr>
+            `).join('');
+          } else {
+            itemsBody.innerHTML = `<tr><td colspan="5" class="px-3 py-4 text-center text-slate-400">No line items extracted.</td></tr>`;
+          }
+        } else {
+          itemsBody.innerHTML = `<tr><td colspan="5" class="px-3 py-4 text-center text-slate-400">Understanding results not available.</td></tr>`;
+        }
+      } catch (err) {
+        itemsBody.innerHTML = `<tr><td colspan="5" class="px-3 py-4 text-center text-slate-400">Could not load line items.</td></tr>`;
+      }
+
+      document.getElementById('detailModal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('detailModal').classList.add('hidden');
+    }
+
+    // Initialize on load
+    document.addEventListener('DOMContentLoaded', loadInvoices);
+  </script>
+</body>
+</html>
